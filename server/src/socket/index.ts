@@ -12,7 +12,7 @@ let ioInstance: Server | null = null;
 export function setupSocketServer(httpServer: HttpServer): Server {
   const io = new Server(httpServer, {
     cors: {
-      origin: env.CLIENT_URL,
+      origin: env.NODE_ENV === 'production' ? true : env.CLIENT_URL,
       credentials: true,
       methods: ['GET', 'POST'],
     },
