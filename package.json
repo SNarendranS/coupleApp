@@ -4,7 +4,7 @@
   "private": true,
   "description": "Production-Ready Realtime Couples Web Application",
   "scripts": {
-    "postinstall": "npm --prefix shared install && npm --prefix server install && npm --prefix client install",
+    "postinstall": "npm --prefix shared install --include=dev && npm --prefix server install --include=dev && npm --prefix client install --include=dev",
     "install:all": "npm install && npm --prefix shared install && npm --prefix server install && npm --prefix client install",
     "build:shared": "npm --prefix shared run build",
     "build:server": "npm --prefix server run build",
