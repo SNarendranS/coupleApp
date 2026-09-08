@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build:shared && npm --prefix client run build",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
