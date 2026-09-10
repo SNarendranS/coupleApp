@@ -167,15 +167,16 @@ class StorageServiceFactory {
 
       if (isCloudinaryConfigured) {
         this.instance = new CloudinaryStorageProvider();
-        console.log('☁️ StorageService initialized with Cloudinary persistent provider');
-      } else if (env.NODE_ENV === 'production') {
-        // Enforce configuration safety in production
-        throw new Error(
-          'Missing Cloudinary credentials in production. Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your environment.'
-        );
+        console.log('[StorageService] Initialized with Cloudinary persistent provider');
       } else {
         this.instance = new LocalStorageProvider();
-        console.log('📁 StorageService initialized with LocalStorageProvider (Development fallback)');
+        if (env.NODE_ENV === 'production') {
+          console.warn(
+            '[StorageService] Warning: Cloudinary credentials not configured in environment. Using LocalStorageProvider as fallback. For persistent media across container restarts, set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on Render.'
+          );
+        } else {
+          console.log('[StorageService] Initialized with LocalStorageProvider (Development fallback)');
+        }
       }
     }
     return this.instance;
