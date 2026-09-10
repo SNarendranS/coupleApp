@@ -36,12 +36,21 @@ export interface IStorageProvider {
 // -------------------------------------------------------------
 export class CloudinaryStorageProvider implements IStorageProvider {
   constructor() {
-    cloudinary.config({
-      cloud_name: env.CLOUDINARY_CLOUD_NAME,
-      api_key: env.CLOUDINARY_API_KEY,
-      api_secret: env.CLOUDINARY_API_SECRET,
-      secure: true,
-    });
+    if (env.CLOUDINARY_URL) {
+      // Direct Cloudinary URL format (e.g., cloudinary://api_key:api_secret@cloud_name)
+      cloudinary.config({
+        url: env.CLOUDINARY_URL,
+        secure: true,
+      });
+    } else {
+      // Separate environment variables
+      cloudinary.config({
+        cloud_name: env.CLOUDINARY_CLOUD_NAME,
+        api_key: env.CLOUDINARY_API_KEY,
+        api_secret: env.CLOUDINARY_API_SECRET,
+        secure: true,
+      });
+    }
   }
 
   async uploadImage(
@@ -160,9 +169,10 @@ class StorageServiceFactory {
   static getInstance(): IStorageProvider {
     if (!this.instance) {
       const isCloudinaryConfigured = Boolean(
-        env.CLOUDINARY_CLOUD_NAME &&
-        env.CLOUDINARY_API_KEY &&
-        env.CLOUDINARY_API_SECRET
+        env.CLOUDINARY_URL ||
+        (env.CLOUDINARY_CLOUD_NAME &&
+         env.CLOUDINARY_API_KEY &&
+         env.CLOUDINARY_API_SECRET)
       );
 
       if (isCloudinaryConfigured) {
@@ -172,7 +182,7 @@ class StorageServiceFactory {
         this.instance = new LocalStorageProvider();
         if (env.NODE_ENV === 'production') {
           console.warn(
-            '[StorageService] Warning: Cloudinary credentials not configured in environment. Using LocalStorageProvider as fallback. For persistent media across container restarts, set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on Render.'
+            '[StorageService] Warning: Cloudinary credentials not configured in environment. Using LocalStorageProvider as fallback. For persistent media across container restarts, set CLOUDINARY_URL (or CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET) on Render.'
           );
         } else {
           console.log('[StorageService] Initialized with LocalStorageProvider (Development fallback)');

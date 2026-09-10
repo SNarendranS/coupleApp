@@ -3,6 +3,7 @@ import path from 'path';
 import { z } from 'zod';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
@@ -11,9 +12,13 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   CLIENT_URL: z.string().default('http://localhost:5173'),
+  // Cloudinary: supports either all-in-one CLOUDINARY_URL or separate credentials
+  CLOUDINARY_URL: z.string().optional(),
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
+  // Worker Secret for reminder processing / cron webhook
+  WORKER_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
