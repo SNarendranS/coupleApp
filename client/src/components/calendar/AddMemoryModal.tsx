@@ -51,7 +51,7 @@ export const AddMemoryModal: React.FC<AddMemoryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 pb-24 sm:pb-4 bg-black/80 backdrop-blur-md overflow-y-auto">
       <div className="glass-panel rounded-3xl p-5 sm:p-8 max-w-lg w-full border border-white/10 shadow-2xl relative my-auto animate-in zoom-in-95 duration-200">
         <button
           onClick={onClose}
@@ -130,18 +130,18 @@ export const AddMemoryModal: React.FC<AddMemoryModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3 pt-4 border-t border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="btn-secondary px-4 py-2 text-xs font-medium"
+              className="btn-secondary w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn-romantic px-5 py-2 text-xs font-semibold"
+              className="btn-romantic w-full sm:w-auto px-5 py-2.5 sm:py-2 text-xs font-semibold flex items-center justify-center gap-2"
             >
               {isSubmitting ? 'Attaching...' : 'Save to Memories'}
             </button>

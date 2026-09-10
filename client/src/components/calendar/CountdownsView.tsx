@@ -93,7 +93,7 @@ export const CountdownsView: React.FC<CountdownsViewProps> = ({
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between border-b border-white/10 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div>
           <h2 className="font-serif text-2xl font-bold text-white">Countdowns</h2>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -102,7 +102,7 @@ export const CountdownsView: React.FC<CountdownsViewProps> = ({
         </div>
         <button
           onClick={onAddSomething}
-          className="btn-romantic px-4 py-2 text-xs font-semibold flex items-center gap-1.5"
+          className="btn-romantic px-4 py-2 text-xs font-semibold flex items-center gap-1.5 self-start sm:self-auto"
         >
           <Sparkles className="w-4 h-4" /> Add Countdown
         </button>
@@ -111,34 +111,37 @@ export const CountdownsView: React.FC<CountdownsViewProps> = ({
       {/* Featured Primary Countdown */}
       {primaryCountdown && (
         <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-rose-500/30 bg-gradient-to-br from-rose-500/10 via-purple-500/5 to-transparent shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4">
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+          {/* Header row with Milestone tag and Featured on Home badge */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-rose-300">
+              Next Major Milestone
+            </span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
               <Star className="w-3.5 h-3.5 fill-rose-400 text-rose-400" /> Featured on Home
             </span>
           </div>
 
           <div className="max-w-md space-y-4">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-rose-300">
-                Next Major Milestone
-              </span>
-              <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-white mt-1">
+              <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-white mt-1 break-words">
                 {primaryCountdown.title}
               </h3>
               <p className="text-xs text-slate-300 mt-1 flex items-center gap-2">
-                <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
-                {new Date(primaryCountdown.targetDate).toLocaleDateString(undefined, {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-                {primaryCountdown.targetTime && ` at ${primaryCountdown.targetTime}`}
+                <CalendarIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>
+                  {new Date(primaryCountdown.targetDate).toLocaleDateString(undefined, {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                  {primaryCountdown.targetTime && ` at ${primaryCountdown.targetTime}`}
+                </span>
               </p>
             </div>
 
             {/* Countdown Big Display */}
-            <div className="flex items-baseline gap-4 pt-2">
-              <div>
+            <div className="flex flex-wrap items-baseline gap-2 sm:gap-4 pt-2">
+              <div className="flex items-baseline">
                 <span className="font-serif text-5xl sm:text-6xl font-black text-white tracking-tight">
                   {Math.max(0, primaryCountdown.daysRemaining)}
                 </span>
@@ -173,11 +176,11 @@ export const CountdownsView: React.FC<CountdownsViewProps> = ({
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300">
                         {c.category}
                       </span>
-                      <h4 className="font-serif text-lg font-bold text-white mt-1.5">{c.title}</h4>
+                      <h4 className="font-serif text-lg font-bold text-white mt-1.5 break-words">{c.title}</h4>
                       <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
                         <CalendarIcon className="w-3 h-3" />
                         {new Date(c.targetDate).toLocaleDateString(undefined, {

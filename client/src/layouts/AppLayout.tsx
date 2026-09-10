@@ -91,10 +91,10 @@ export const AppLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col relative bg-space-950 pb-20 sm:pb-24 lg:pb-0">
+    <div className="min-h-screen flex flex-col relative bg-space-950 pb-24 sm:pb-28 lg:pb-0">
       <HeartParticlesCanvas className="fixed inset-0 pointer-events-none z-0 opacity-40" />
       <Navbar />
-      <main className="flex-1 relative z-10">
+      <main className="flex-1 relative">
         <Outlet />
       </main>
       <MobileNav />
