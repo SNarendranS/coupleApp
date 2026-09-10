@@ -265,6 +265,7 @@ describe('Production UX & Enhancement Pass Tests', () => {
 
     // Server-verified deliberate restart
     const restarted = await GameService.restartGame(couple._id.toString(), userA._id.toString(), gameId);
+    assert.ok(restarted, 'Restarted game must exist');
     assert.equal(restarted.status, 'in_progress');
     assert.notEqual(restarted._id.toString(), gameId);
 

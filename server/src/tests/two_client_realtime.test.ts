@@ -82,6 +82,7 @@ describe('Realtime Two-User Socket.IO Verification', () => {
   after(async () => {
     if (socketA) socketA.disconnect();
     if (socketB) socketB.disconnect();
+    await new Promise((r) => setTimeout(r, 300));
     if (httpServer) {
       await new Promise<void>((resolve) => httpServer.close(() => resolve()));
     }

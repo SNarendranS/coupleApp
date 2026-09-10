@@ -4,11 +4,11 @@ import { GameDTO } from '@couple/shared';
 interface GameState {
   activeGame: GameDTO | null;
   history: GameDTO[];
-  gameType: 'xo' | 'bingo';
+  gameType: 'xo' | 'bingo' | 'battleship' | 'checkers';
   isLoading: boolean;
   setActiveGame: (game: GameDTO | null) => void;
   setHistory: (history: GameDTO[]) => void;
-  setGameType: (type: 'xo' | 'bingo') => void;
+  setGameType: (type: 'xo' | 'bingo' | 'battleship' | 'checkers') => void;
   setLoading: (isLoading: boolean) => void;
 }
 

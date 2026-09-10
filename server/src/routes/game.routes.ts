@@ -3,7 +3,12 @@ import { GameController } from '../controllers/game.controller';
 import { requireAuth } from '../middleware/auth';
 import { requireCouple } from '../middleware/couple';
 import { validateBody } from '../middleware/validate';
-import { gameMoveSchema, bingoSubmitBoardSchema, gameRestartSchema } from '@couple/shared';
+import {
+  gameMoveSchema,
+  bingoSubmitBoardSchema,
+  gameRestartSchema,
+  battleshipPlaceShipsSchema,
+} from '@couple/shared';
 
 const router = Router();
 
@@ -14,6 +19,9 @@ router.get('/history', GameController.getHistory);
 router.post('/start', GameController.startGame);
 router.post('/submit-board', validateBody(bingoSubmitBoardSchema), GameController.submitBoard);
 router.post('/autofill', GameController.autoFillBoard);
+router.post('/battleship/place', validateBody(battleshipPlaceShipsSchema), GameController.placeFleet);
+router.post('/battleship/randomize', GameController.randomizeFleet);
+router.post('/battleship/ready', GameController.readyFleet);
 router.post('/move', validateBody(gameMoveSchema), GameController.makeMove);
 router.post('/restart', validateBody(gameRestartSchema), GameController.restartGame);
 router.post('/end', validateBody(gameRestartSchema), GameController.endGame);

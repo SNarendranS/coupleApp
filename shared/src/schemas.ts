@@ -79,6 +79,24 @@ export const gameMoveSchema = z.object({
   move: z.object({
     cellIndex: z.number().int().min(0).max(8).optional(),
     calledNumber: z.number().int().min(1).max(25).optional(),
+    target: z
+      .object({
+        row: z.number().int().min(0).max(9),
+        col: z.number().int().min(0).max(9),
+      })
+      .optional(),
+    from: z
+      .object({
+        row: z.number().int().min(0).max(7),
+        col: z.number().int().min(0).max(7),
+      })
+      .optional(),
+    to: z
+      .object({
+        row: z.number().int().min(0).max(7),
+        col: z.number().int().min(0).max(7),
+      })
+      .optional(),
   }),
 });
 
@@ -90,6 +108,41 @@ export const bingoSetupSchema = z.object({
 export const bingoSubmitBoardSchema = z.object({
   gameId: z.string().min(1),
   board: z.array(z.array(z.number().int().min(1).max(25)).length(5)).length(5),
+});
+
+export const shipPlacementSchema = z.object({
+  type: z.enum(['carrier', 'battleship', 'cruiser', 'submarine', 'destroyer']),
+  size: z.number().int().min(2).max(5),
+  row: z.number().int().min(0).max(9),
+  col: z.number().int().min(0).max(9),
+  isVertical: z.boolean(),
+  hits: z.number().int().min(0).default(0),
+  isSunk: z.boolean().default(false),
+});
+
+export const battleshipPlaceShipsSchema = z.object({
+  gameId: z.string().min(1),
+  fleet: z.array(shipPlacementSchema).min(4).max(5),
+});
+
+export const battleshipFireSchema = z.object({
+  gameId: z.string().min(1),
+  target: z.object({
+    row: z.number().int().min(0).max(9),
+    col: z.number().int().min(0).max(9),
+  }),
+});
+
+export const checkersMoveSchema = z.object({
+  gameId: z.string().min(1),
+  from: z.object({
+    row: z.number().int().min(0).max(7),
+    col: z.number().int().min(0).max(7),
+  }),
+  to: z.object({
+    row: z.number().int().min(0).max(7),
+    col: z.number().int().min(0).max(7),
+  }),
 });
 
 export const gameRestartSchema = z.object({
@@ -146,3 +199,7 @@ export type GameMoveInput = z.infer<typeof gameMoveSchema>;
 export type BingoSetupInput = z.infer<typeof bingoSetupSchema>;
 export type BingoSubmitBoardInput = z.infer<typeof bingoSubmitBoardSchema>;
 export type GameRestartInput = z.infer<typeof gameRestartSchema>;
+export type ShipPlacementInput = z.infer<typeof shipPlacementSchema>;
+export type BattleshipPlaceShipsInput = z.infer<typeof battleshipPlaceShipsSchema>;
+export type BattleshipFireInput = z.infer<typeof battleshipFireSchema>;
+export type CheckersMoveInput = z.infer<typeof checkersMoveSchema>;

@@ -74,7 +74,7 @@ export interface DrawingBoardDTO {
 }
 
 // Game types
-export type GameType = 'xo' | 'bingo';
+export type GameType = 'xo' | 'bingo' | 'battleship' | 'checkers';
 export type GameStatus = 'setup' | 'waiting' | 'in_progress' | 'finished' | 'draw' | 'cancelled';
 
 export type BingoFillMode = 'manual' | 'timed' | 'automatic';
@@ -106,13 +106,99 @@ export interface BingoGameState {
   readyPlayers?: string[]; // userIds of players ready
 }
 
+// Battleship Types
+export type ShipType = 'carrier' | 'battleship' | 'cruiser' | 'submarine' | 'destroyer';
+
+export interface ShipPlacement {
+  type: ShipType;
+  size: number;
+  row: number; // 0-9
+  col: number; // 0-9
+  isVertical: boolean;
+  hits: number;
+  isSunk: boolean;
+}
+
+export interface BattleshipBoardConfig {
+  boardSize?: '10x10' | '8x8';
+  fleet?: 'classic' | 'small';
+  turnTimeLimitSeconds?: number;
+  firstPlayer?: 'host' | 'challenger' | 'random';
+}
+
+export interface BattleshipShot {
+  row: number;
+  col: number;
+  result: 'hit' | 'miss' | 'sunk';
+  shipType?: ShipType; // STRICTLY present only when result is 'sunk'
+  timestamp: string;
+}
+
+export interface BattleshipPlayerStats {
+  shots: number;
+  hits: number;
+  misses: number;
+  shipsSunk: number;
+}
+
+export interface BattleshipPublicState {
+  players: [string, string];
+  currentTurn: string;
+  shots: Record<string, BattleshipShot[]>; // userId -> shots fired by this user
+  readyPlayers: string[];
+  winner: string | null;
+  turnStartedAt?: string;
+  stats: Record<string, BattleshipPlayerStats>;
+}
+
+export interface BattleshipPrivatePlayerState {
+  fleet: ShipPlacement[];
+}
+
+export interface BattleshipClientGameState extends BattleshipPublicState {
+  myFleet: ShipPlacement[];
+  opponentFleet?: ShipPlacement[] | null; // ONLY populated when status === 'finished'
+}
+
+// Checkers Types
+export interface CheckersPiece {
+  id: string;
+  player: string; // userId
+  row: number; // 0-7
+  col: number; // 0-7
+  isKing: boolean;
+}
+
+export interface CheckersConfig {
+  turnTimeLimitSeconds?: number;
+  firstPlayer?: 'host' | 'challenger' | 'random';
+}
+
+export interface CheckersMove {
+  from: { row: number; col: number };
+  to: { row: number; col: number };
+  capturedPieceId?: string;
+}
+
+export interface CheckersGameState {
+  players: [string, string];
+  pieces: CheckersPiece[];
+  currentTurn: string; // userId
+  winner: string | null;
+  activePieceId?: string | null; // locked piece during multi-jump
+  consecutiveJumps: boolean;
+  movesCount: number;
+  captures: Record<string, number>; // userId -> capture count
+  turnStartedAt?: string;
+}
+
 export interface GameDTO {
   id: string;
   coupleId: string;
   type: GameType;
   status: GameStatus;
-  config?: BingoConfig;
-  state: XOGameState | BingoGameState;
+  config?: BingoConfig | BattleshipBoardConfig | CheckersConfig | Record<string, any>;
+  state: XOGameState | BingoGameState | BattleshipClientGameState | CheckersGameState | any;
   winner?: string | null;
   createdBy: string;
   createdAt: string;

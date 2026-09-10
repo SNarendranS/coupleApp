@@ -22,7 +22,11 @@ import {
   Flame,
   Check,
   Zap,
+  Anchor,
+  Crown,
 } from 'lucide-react';
+import { BattleshipGame } from '../components/games/BattleshipGame';
+import { CheckersGame } from '../components/games/CheckersGame';
 
 export const GamesPage: React.FC = () => {
   const { user, partner } = useAuthStore();
@@ -104,7 +108,7 @@ export const GamesPage: React.FC = () => {
   // 3. Timed Setup Countdown synchronization
   useEffect(() => {
     if (activeGame?.type === 'bingo' && activeGame?.status === 'setup') {
-      const config = activeGame.config;
+      const config = activeGame.config as BingoConfig | undefined;
       if (config?.fillMode === 'timed' && config?.setupStartedAt && config?.timeLimitSeconds) {
         const calculateRemaining = () => {
           const startedAt = new Date(config.setupStartedAt!).getTime();
@@ -147,9 +151,13 @@ export const GamesPage: React.FC = () => {
   }, [activeGame, user]);
 
   // 4. Game Action Handlers
-  const handleStartGame = (type: 'xo' | 'bingo') => {
+  const handleStartGame = (type: 'xo' | 'bingo' | 'battleship' | 'checkers') => {
     if (type === 'bingo') {
       setIsBingoSetupModalOpen(true);
+    } else if (type === 'battleship') {
+      socketService.emit(SOCKET_EVENTS.GAME_CREATE, { type: 'battleship' });
+    } else if (type === 'checkers') {
+      socketService.emit(SOCKET_EVENTS.GAME_CREATE, { type: 'checkers' });
     } else {
       socketService.emit(SOCKET_EVENTS.GAME_CREATE, { type: 'xo' });
     }
@@ -309,7 +317,7 @@ export const GamesPage: React.FC = () => {
         </div>
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-2 p-1.5 rounded-2xl bg-white/5 border border-white/10 w-full sm:w-80 shrink-0">
+        <div className="grid grid-cols-2 sm:grid-cols-4 p-1.5 rounded-2xl bg-white/5 border border-white/10 w-full sm:w-auto shrink-0 gap-1">
           <button
             type="button"
             onClick={() => setGameType('xo')}
@@ -331,6 +339,30 @@ export const GamesPage: React.FC = () => {
             }`}
           >
             <span>Couple Bingo</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setGameType('battleship')}
+            className={`py-2 px-3 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 ${
+              gameType === 'battleship'
+                ? 'bg-blue-600 text-white shadow-glow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Anchor className="w-3.5 h-3.5" />
+            <span>Battleship</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setGameType('checkers')}
+            className={`py-2 px-3 rounded-xl text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 ${
+              gameType === 'checkers'
+                ? 'bg-purple-600 text-white shadow-glow-purple'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Crown className="w-3.5 h-3.5" />
+            <span>Checkers</span>
           </button>
         </div>
       </div>
@@ -522,7 +554,7 @@ export const GamesPage: React.FC = () => {
                     <span className="text-xs font-bold uppercase tracking-wider text-purple-300">
                       Pre-Game Board Setup
                     </span>
-                    {activeGame.config?.fillMode === 'timed' && (
+                    {(activeGame.config as BingoConfig | undefined)?.fillMode === 'timed' && (
                       <div
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold border transition-colors ${
                           timeLeft <= 5
@@ -819,6 +851,78 @@ export const GamesPage: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* ========================================================= */}
+        {/* 3. BATTLESHIP */}
+        {/* ========================================================= */}
+        {gameType === 'battleship' && (
+          <div>
+            {!activeGame || activeGame.status === 'waiting' ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                <div className="w-16 h-16 rounded-3xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-glow">
+                  <Anchor className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-white">Battleship with {partner?.displayName || 'Partner'}</h3>
+                  <p className="text-xs text-slate-400 max-w-sm">
+                    Secretly position your 5-ship fleet on your ocean grid, then take turns calling coordinates to sink your partner's armada!
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleStartGame('battleship')}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-glow flex items-center gap-2 transition-transform hover:scale-105"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Start Battleship Match</span>
+                </button>
+              </div>
+            ) : (
+              <BattleshipGame
+                activeGame={activeGame}
+                user={user}
+                partner={partner}
+                onStartNewGame={() => handleStartGame('battleship')}
+              />
+            )}
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 4. CHECKERS */}
+        {/* ========================================================= */}
+        {gameType === 'checkers' && (
+          <div>
+            {!activeGame || activeGame.status === 'waiting' ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                <div className="w-16 h-16 rounded-3xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-glow">
+                  <Crown className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-white">Checkers with {partner?.displayName || 'Partner'}</h3>
+                  <p className="text-xs text-slate-400 max-w-sm">
+                    Classic 8×8 American Checkers with mandatory captures, multiple jumps, and king promotions.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleStartGame('checkers')}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-romantic-600 hover:from-purple-500 hover:to-romantic-500 text-white font-bold text-sm shadow-glow flex items-center gap-2 transition-transform hover:scale-105"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Start Checkers Match</span>
+                </button>
+              </div>
+            ) : (
+              <CheckersGame
+                activeGame={activeGame}
+                user={user}
+                partner={partner}
+                onStartNewGame={() => handleStartGame('checkers')}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Match History Card */}
@@ -1000,6 +1104,20 @@ export const GamesPage: React.FC = () => {
                 <strong className="text-white block font-serif">Couple Bingo</strong>
                 <p>
                   Each partner gets a 5x5 board filled with unique numbers 1 through 25. Players alternate calling an uncalled number. When a number is called, both players mark it. First player to complete 5 full lines (horizontal, vertical, or diagonal) calls BINGO and wins!
+                </p>
+              </div>
+
+              <div>
+                <strong className="text-white block font-serif">🚢 Battleship</strong>
+                <p>
+                  Secretly arrange your 5-ship fleet (Carrier, Battleship, Cruiser, Submarine, Destroyer) on your 10×10 ocean. Take turns calling coordinates to attack. Hits and misses appear on the target ocean; sinking all enemy ships claims victory!
+                </p>
+              </div>
+
+              <div>
+                <strong className="text-white block font-serif">♟️ Checkers</strong>
+                <p>
+                  Classic 8×8 American Checkers on dark squares. Pieces move diagonally forward. <strong>Mandatory capture:</strong> if any jump is available on your turn, you must jump! Reaching the enemy back rank crowns a King with multi-directional movement.
                 </p>
               </div>
             </div>

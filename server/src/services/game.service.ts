@@ -1,7 +1,22 @@
 import { Game, Couple, Activity, User } from '../models';
-import { BingoConfig } from '@couple/shared';
+import { BingoConfig, BattleshipBoardConfig, CheckersConfig, ShipPlacement } from '@couple/shared';
+import { BattleshipEngine } from '../engines/battleship.engine';
+import { CheckersEngine } from '../engines/checkers.engine';
 
 export class GameService {
+  static sanitizeGameForUser(game: any, userId?: string) {
+    if (!game) return null;
+    const doc = game.toObject ? game.toObject() : JSON.parse(JSON.stringify(game));
+    if (doc._id && !doc.id) {
+      doc.id = doc._id.toString();
+    }
+    if (doc.type === 'battleship' && userId && doc.state) {
+      const isFinished = doc.status === 'finished' || doc.status === 'draw' || doc.status === 'cancelled';
+      doc.state = BattleshipEngine.sanitizeForPlayer(doc.state, userId, isFinished);
+    }
+    return doc;
+  }
+
   // -------------------------------------------------------------
   // XO / TIC-TAC-TOE ENGINE
   // -------------------------------------------------------------
@@ -16,7 +31,11 @@ export class GameService {
     [2, 4, 6],
   ];
 
-  static async getActiveGame(coupleId: string, type: 'xo' | 'bingo') {
+  static async getActiveGame(
+    coupleId: string,
+    type: 'xo' | 'bingo' | 'battleship' | 'checkers',
+    userId?: string
+  ) {
     // 1. Check for active or setup game
     const activeGame = await Game.findOne({
       coupleId,
@@ -36,25 +55,33 @@ export class GameService {
           }
         }
       }
-      return activeGame;
+      return this.sanitizeGameForUser(activeGame, userId);
     }
 
     // 2. If no active game, return the most recent finished game for post-game review
-    return Game.findOne({
+    const recent = await Game.findOne({
       coupleId,
       type,
       status: { $in: ['finished', 'draw'] },
     }).sort({ createdAt: -1 });
+
+    return this.sanitizeGameForUser(recent, userId);
   }
 
-  static async getGameHistory(coupleId: string, type?: 'xo' | 'bingo') {
+  static async getGameHistory(
+    coupleId: string,
+    type?: 'xo' | 'bingo' | 'battleship' | 'checkers',
+    userId?: string
+  ) {
     const filter: any = { coupleId, status: { $in: ['finished', 'draw'] } };
     if (type) filter.type = type;
 
-    return Game.find(filter)
+    const games = await Game.find(filter)
       .populate('winner', 'username displayName')
       .sort({ finishedAt: -1 })
       .limit(20);
+
+    return games.map((g) => this.sanitizeGameForUser(g, userId));
   }
 
   static async startXOGame(coupleId: string, createdBy: string) {
@@ -192,8 +219,12 @@ export class GameService {
     // Start fresh game of the same type
     if (game.type === 'xo') {
       return this.startXOGame(coupleId, userId);
-    } else {
+    } else if (game.type === 'bingo') {
       return this.initBingoSetup(coupleId, userId, game.config as any);
+    } else if (game.type === 'battleship') {
+      return this.startBattleshipGame(coupleId, userId, game.config as any);
+    } else if (game.type === 'checkers') {
+      return this.startCheckersGame(coupleId, userId, game.config as any);
     }
   }
 
@@ -582,5 +613,250 @@ export class GameService {
     game.markModified('state');
     await game.save();
     return game;
+  }
+
+  // -------------------------------------------------------------
+  // BATTLESHIP ENGINE (Authoritative Realtime Battleship)
+  // -------------------------------------------------------------
+  static async startBattleshipGame(coupleId: string, createdBy: string, config?: BattleshipBoardConfig) {
+    // End any active battleship game
+    await Game.updateMany(
+      { coupleId, type: 'battleship', status: { $in: ['in_progress', 'setup', 'waiting'] } },
+      { status: 'cancelled', finishedAt: new Date() }
+    );
+
+    const couple = await Couple.findById(coupleId);
+    if (!couple || couple.memberIds.length !== 2) {
+      throw new Error('Couple members must be exactly 2');
+    }
+
+    const [userA, userB] = couple.memberIds.map((id) => id.toString());
+    const initialState = BattleshipEngine.createInitialState(userA, userB, config);
+
+    const game = await Game.create({
+      coupleId,
+      type: 'battleship',
+      status: 'setup',
+      createdBy,
+      config: config || {},
+      state: initialState,
+    });
+
+    return game;
+  }
+
+  static async placeBattleshipFleet(gameId: string, userId: string, fleet: ShipPlacement[]) {
+    const game = await Game.findById(gameId);
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (game.status !== 'setup') {
+      const err: any = new Error('Game setup phase has already ended');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const boardSize = game.config?.boardSize || '10x10';
+    const validation = BattleshipEngine.validateFleet(fleet, boardSize);
+    if (!validation.valid) {
+      const err: any = new Error(validation.error || 'Invalid fleet placement');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const state = game.state;
+    if (!state.privatePlayers) state.privatePlayers = {};
+    state.privatePlayers[userId] = { fleet };
+
+    game.markModified('state');
+    await game.save();
+    return game;
+  }
+
+  static async randomizeBattleshipFleet(gameId: string, userId: string) {
+    const game = await Game.findById(gameId);
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (game.status !== 'setup') {
+      const err: any = new Error('Game setup phase has already ended');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const boardSize = game.config?.boardSize || '10x10';
+    const randomFleet = BattleshipEngine.generateRandomFleet(boardSize);
+
+    const state = game.state;
+    if (!state.privatePlayers) state.privatePlayers = {};
+    state.privatePlayers[userId] = { fleet: randomFleet };
+
+    game.markModified('state');
+    await game.save();
+    return { game, fleet: randomFleet };
+  }
+
+  static async readyBattleshipFleet(gameId: string, userId: string) {
+    const game = await Game.findById(gameId);
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (game.status !== 'setup') {
+      return game;
+    }
+
+    const state = game.state;
+    const boardSize = game.config?.boardSize || '10x10';
+    const userFleet = state.privatePlayers?.[userId]?.fleet;
+
+    const validation = BattleshipEngine.validateFleet(userFleet, boardSize);
+    if (!validation.valid) {
+      const err: any = new Error(validation.error || 'Please place all ships legally before readying');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const pub = state.publicState;
+    if (!pub.readyPlayers) pub.readyPlayers = [];
+    if (!pub.readyPlayers.includes(userId)) {
+      pub.readyPlayers.push(userId);
+    }
+
+    // When both players are ready, begin active gameplay!
+    const players: string[] = pub.players;
+    if (players.every((p) => pub.readyPlayers.includes(p))) {
+      game.status = 'in_progress';
+      pub.turnStartedAt = new Date().toISOString();
+    }
+
+    game.markModified('state');
+    await game.save();
+    return game;
+  }
+
+  static async handleBattleshipFire(gameId: string, userId: string, target: { row: number; col: number }) {
+    const game = await Game.findById(gameId);
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (game.status !== 'in_progress') {
+      const err: any = new Error('Game is not in progress');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const boardSize = game.config?.boardSize || '10x10';
+    const shotRes = BattleshipEngine.fireShot(game.state, userId, target, boardSize);
+
+    if (!shotRes.success) {
+      const err: any = new Error(shotRes.error || 'Invalid shot');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (shotRes.isGameOver) {
+      game.status = 'finished';
+      game.winner = userId as any;
+      game.finishedAt = new Date();
+
+      const winnerUser = await User.findById(userId);
+      await Activity.create({
+        coupleId: game.coupleId,
+        userId,
+        action: 'battleship_won',
+        details: `${winnerUser?.displayName || 'Player'} won the Battleship match!`,
+      });
+    }
+
+    game.markModified('state');
+    await game.save();
+    return { game, shotResult: shotRes };
+  }
+
+  // -------------------------------------------------------------
+  // CHECKERS ENGINE (Authoritative Realtime Checkers)
+  // -------------------------------------------------------------
+  static async startCheckersGame(coupleId: string, createdBy: string, config?: CheckersConfig) {
+    // End any active checkers game
+    await Game.updateMany(
+      { coupleId, type: 'checkers', status: { $in: ['in_progress', 'setup', 'waiting'] } },
+      { status: 'cancelled', finishedAt: new Date() }
+    );
+
+    const couple = await Couple.findById(coupleId);
+    if (!couple || couple.memberIds.length !== 2) {
+      throw new Error('Couple members must be exactly 2');
+    }
+
+    const [userA, userB] = couple.memberIds.map((id) => id.toString());
+    const initialState = CheckersEngine.createInitialState(userA, userB, config);
+
+    const game = await Game.create({
+      coupleId,
+      type: 'checkers',
+      status: 'in_progress',
+      createdBy,
+      config: config || {},
+      state: initialState,
+    });
+
+    return game;
+  }
+
+  static async handleCheckersMove(
+    gameId: string,
+    userId: string,
+    from: { row: number; col: number },
+    to: { row: number; col: number }
+  ) {
+    const game = await Game.findById(gameId);
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (game.status !== 'in_progress') {
+      const err: any = new Error('Game is not in progress');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const moveRes = CheckersEngine.executeMove(game.state as any, userId, from, to);
+    if (!moveRes.success) {
+      const err: any = new Error(moveRes.error || 'Invalid move');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (moveRes.isGameOver) {
+      game.status = 'finished';
+      game.winner = moveRes.winner as any;
+      game.finishedAt = new Date();
+
+      const winnerUser = await User.findById(moveRes.winner);
+      await Activity.create({
+        coupleId: game.coupleId,
+        userId: moveRes.winner,
+        action: 'checkers_won',
+        details: `${winnerUser?.displayName || 'Player'} won the Checkers match!`,
+      });
+    }
+
+    game.markModified('state');
+    await game.save();
+    return { game, moveResult: moveRes };
   }
 }

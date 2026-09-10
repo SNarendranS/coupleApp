@@ -3,7 +3,7 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 export interface IGame extends Document {
   _id: Types.ObjectId;
   coupleId: Types.ObjectId;
-  type: 'xo' | 'bingo';
+  type: 'xo' | 'bingo' | 'battleship' | 'checkers';
   status: 'setup' | 'waiting' | 'in_progress' | 'finished' | 'draw' | 'cancelled';
   config?: Record<string, any>;
   state: Record<string, any>;
@@ -24,7 +24,7 @@ const GameSchema = new Schema<IGame>(
     },
     type: {
       type: String,
-      enum: ['xo', 'bingo'],
+      enum: ['xo', 'bingo', 'battleship', 'checkers'],
       required: true,
     },
     status: {

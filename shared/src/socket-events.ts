@@ -41,6 +41,11 @@ export const SOCKET_EVENTS = {
   GAME_RESTART: 'game:restart',
   GAME_END: 'game:end',
   GAME_FINISHED: 'game:finished',
+  GAME_BATTLESHIP_PLACE: 'game:battleship-place',
+  GAME_BATTLESHIP_RANDOMIZE: 'game:battleship-randomize',
+  GAME_BATTLESHIP_READY: 'game:battleship-ready',
+  GAME_BATTLESHIP_FIRE: 'game:battleship-fire',
+  GAME_CHECKERS_MOVE: 'game:checkers-move',
 
   // Calendar
   CALENDAR_EVENT_CREATED: 'calendar:event-created',
