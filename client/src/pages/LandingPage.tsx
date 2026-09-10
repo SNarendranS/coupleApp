@@ -10,8 +10,8 @@ import {
   Image as ImageIcon,
   Bookmark,
   ShieldCheck,
-  Zap,
   ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
@@ -169,5 +169,5 @@ export const LandingPage: React.FC = () => {
 };
 
 function SparkleIcon() {
-  return <span className="text-rose-400">✦</span>;
+  return <Sparkles className="w-3.5 h-3.5 text-rose-400 inline" />;
 }

@@ -41,7 +41,7 @@ export const CoupleAvatar: React.FC<CoupleAvatarProps> = ({
     }
     const u1 = user?.displayName?.[0] || 'U';
     const u2 = partner?.displayName?.[0] || 'T';
-    return `${u1}❤️${u2}`.toUpperCase();
+    return `${u1} & ${u2}`.toUpperCase();
   };
 
   const handleOpenModal = () => {

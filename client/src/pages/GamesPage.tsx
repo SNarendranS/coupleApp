@@ -440,7 +440,7 @@ export const GamesPage: React.FC = () => {
                 <div className="space-y-1.5 animate-in zoom-in-95 duration-300">
                   <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30 shadow-md">
                     <Trophy className="w-4 h-4 text-amber-400" />
-                    {activeGame.winner === user?.id ? 'You Won the Match! 🎉' : `${partner?.displayName || 'Partner'} Won! ❤️`}
+                    {activeGame.winner === user?.id ? 'You Won the Match!' : `${partner?.displayName || 'Partner'} Won!`}
                   </div>
                   <p className="text-xs text-slate-400">
                     Finished in {xoState?.movesCount || 0} moves. Completed board preserved for review.
@@ -449,7 +449,7 @@ export const GamesPage: React.FC = () => {
               ) : activeGame.status === 'draw' ? (
                 <div className="space-y-1.5 animate-in zoom-in-95 duration-300">
                   <span className="text-xs font-bold px-4 py-1.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    Romantic Tie! 🤝
+                    Romantic Tie!
                   </span>
                   <p className="text-xs text-slate-400">Two brilliant minds in love. Full board completed.</p>
                 </div>
@@ -495,8 +495,8 @@ export const GamesPage: React.FC = () => {
                         : 'bg-white/5 border-white/5 cursor-not-allowed opacity-50'
                     } ${isWinningCell ? 'ring-4 ring-amber-400 scale-105 animate-pulse bg-amber-500/20' : ''}`}
                   >
-                    <span className="text-3xl sm:text-4xl font-black leading-none block">
-                      {val === 'X' ? '✕' : val === 'O' ? '○' : ''}
+                    <span className="text-3xl sm:text-4xl font-black leading-none block font-mono">
+                      {val || ''}
                     </span>
                   </button>
                 );
@@ -745,7 +745,7 @@ export const GamesPage: React.FC = () => {
                   <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-amber-500/20 text-amber-300 text-xs sm:text-sm font-bold border border-amber-500/30 shadow-glow">
                     <Trophy className="w-5 h-5 text-amber-400" />
                     <span>
-                      {activeGame.winner === user?.id ? 'BINGO! You Won! 🏆' : `BINGO! ${partner?.displayName || 'Partner'} Won! ❤️`}
+                      {activeGame.winner === user?.id ? 'BINGO! You Won!' : `BINGO! ${partner?.displayName || 'Partner'} Won!`}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400">
@@ -1108,14 +1108,14 @@ export const GamesPage: React.FC = () => {
               </div>
 
               <div>
-                <strong className="text-white block font-serif">🚢 Battleship</strong>
+                <strong className="text-white block font-serif">Battleship</strong>
                 <p>
                   Secretly arrange your 5-ship fleet (Carrier, Battleship, Cruiser, Submarine, Destroyer) on your 10×10 ocean. Take turns calling coordinates to attack. Hits and misses appear on the target ocean; sinking all enemy ships claims victory!
                 </p>
               </div>
 
               <div>
-                <strong className="text-white block font-serif">♟️ Checkers</strong>
+                <strong className="text-white block font-serif">Checkers</strong>
                 <p>
                   Classic 8×8 American Checkers on dark squares. Pieces move diagonally forward. <strong>Mandatory capture:</strong> if any jump is available on your turn, you must jump! Reaching the enemy back rank crowns a King with multi-directional movement.
                 </p>

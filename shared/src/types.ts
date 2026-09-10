@@ -228,24 +228,136 @@ export interface MediaDTO {
 // Calendar types
 export type CalendarEventType = 'memory' | 'anniversary' | 'plan' | 'date_night' | 'birthday';
 
+export type CalendarCategory = 'plan' | 'milestone' | 'memory' | 'reminder';
+
+export type EventRecurrenceFrequency = 'none' | 'weekly' | 'monthly' | 'yearly';
+
+export interface EventRecurrence {
+  frequency: EventRecurrenceFrequency;
+  interval: number;
+  endDate?: string;
+}
+
+export interface EventReminder {
+  id: string;
+  minutesBefore: number;
+  scheduledFor: string; // ISO string
+  isProcessed: boolean;
+  notifyPartner: boolean;
+}
+
+export interface EventCountdown {
+  enabled: boolean;
+  isPrimary?: boolean;
+  customLabel?: string;
+}
+
+export type MilestoneType =
+  | 'anniversary'
+  | 'first_date'
+  | 'first_meeting'
+  | 'engagement'
+  | 'birthday'
+  | 'custom';
+
+export interface EventMilestone {
+  isMilestone: boolean;
+  milestoneType?: MilestoneType;
+  showOnHome?: boolean;
+}
+
+export interface LinkedMemorySummary {
+  id: string;
+  title: string;
+  date: string;
+  imageUrls: string[];
+  location?: string;
+}
+
 export interface CalendarEventDTO {
   id: string;
   coupleId: string;
   createdBy: string;
   title: string;
   description?: string;
-  date: string; // ISO date string YYYY-MM-DD
+  notes?: string;
+
+  // Categories & multi-property support
+  eventTypes: CalendarCategory[];
+  type?: CalendarEventType; // legacy single type compatibility
+
+  // Date & Time
+  startDate: string; // YYYY-MM-DD
+  date?: string; // legacy alias
+  endDate?: string; // YYYY-MM-DD
   startTime?: string; // HH:mm
   endTime?: string; // HH:mm
   allDay: boolean;
-  type: CalendarEventType;
+
   location?: string;
   imageUrl?: string;
   imagePublicId?: string;
+
+  // Rich features
+  recurrence?: EventRecurrence;
+  reminders?: EventReminder[];
+  countdown?: EventCountdown;
+  milestone?: EventMilestone;
+  linkedMemoryIds?: string[];
+  linkedMoments?: LinkedMemorySummary[];
+
+  // Legacy fields
   reminderMinutes?: number;
   isRecurringYearly?: boolean;
+
   createdAt: string;
   updatedAt: string;
+}
+
+// Countdown item DTO (derived dynamically)
+export interface CountdownItemDTO {
+  eventId: string;
+  title: string;
+  targetDate: string;
+  targetTime?: string;
+  targetTimestamp: string;
+  daysRemaining: number;
+  hoursRemaining: number;
+  status: 'upcoming' | 'today' | 'passed';
+  isPrimary: boolean;
+  customLabel?: string;
+  category: CalendarCategory;
+  milestoneType?: MilestoneType;
+}
+
+// Our Story (Timeline) DTO (derived dynamically)
+export interface OurStoryItemDTO {
+  id: string;
+  sourceType: 'calendar_event' | 'memory';
+  title: string;
+  date: string; // YYYY-MM-DD
+  year: number;
+  month: number; // 1-12
+  description?: string;
+  location?: string;
+  categories: CalendarCategory[];
+  milestoneType?: MilestoneType;
+  photos: string[];
+  linkedMemoryCount: number;
+  calendarEventId?: string;
+  memoryId?: string;
+  createdAt: string;
+}
+
+export interface OurStoryTimelineMonthGroup {
+  month: number;
+  monthName: string;
+  items: OurStoryItemDTO[];
+}
+
+export interface OurStoryTimelineYearGroup {
+  year: number;
+  months: OurStoryTimelineMonthGroup[];
 }
 
 // Shared Links types

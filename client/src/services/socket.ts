@@ -34,12 +34,12 @@ class SocketService {
 
     this.socket.on(SOCKET_EVENTS.CONNECT, () => {
       this.connected = true;
-      console.log('⚡ Connected to UsTwo Realtime Socket Server');
+      console.log('Connected to UsTwo Realtime Socket Server');
     });
 
     this.socket.on(SOCKET_EVENTS.DISCONNECT, (reason) => {
       this.connected = false;
-      console.log('⚡ Disconnected from Socket Server:', reason);
+      console.log('Disconnected from Socket Server:', reason);
     });
 
     this.socket.on(SOCKET_EVENTS.ERROR, (err) => {

@@ -150,19 +150,74 @@ export const gameRestartSchema = z.object({
 });
 
 // Calendar Schemas
+export const calendarCategorySchema = z.enum(['plan', 'milestone', 'memory', 'reminder']);
+
+export const eventRecurrenceSchema = z.object({
+  frequency: z.enum(['none', 'weekly', 'monthly', 'yearly']).default('none'),
+  interval: z.number().int().min(1).max(100).default(1),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional().or(z.literal('')),
+});
+
+export const eventReminderSchema = z.object({
+  id: z.string().optional(),
+  minutesBefore: z.number().int().min(0).max(10080),
+  scheduledFor: z.string().optional(),
+  isProcessed: z.boolean().default(false),
+  notifyPartner: z.boolean().default(true),
+});
+
+export const eventCountdownSchema = z.object({
+  enabled: z.boolean().default(false),
+  isPrimary: z.boolean().default(false),
+  customLabel: z.string().max(60).trim().optional().or(z.literal('')),
+});
+
+export const eventMilestoneSchema = z.object({
+  isMilestone: z.boolean().default(false),
+  milestoneType: z
+    .enum(['anniversary', 'first_date', 'first_meeting', 'engagement', 'birthday', 'custom'])
+    .optional(),
+  showOnHome: z.boolean().default(false),
+});
+
 export const calendarEventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100).trim(),
   description: z.string().max(500).trim().optional().or(z.literal('')),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  notes: z.string().max(1000).trim().optional().or(z.literal('')),
+
+  // Date and Time (supporting startDate with fallback to legacy date)
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional().or(z.literal('')),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:mm)').optional().or(z.literal('')),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:mm)').optional().or(z.literal('')),
   allDay: z.boolean().default(true),
-  type: z.enum(['memory', 'anniversary', 'plan', 'date_night', 'birthday']),
+
+  // Categories
+  eventTypes: z.array(calendarCategorySchema).optional(),
+  type: z.enum(['memory', 'anniversary', 'plan', 'date_night', 'birthday']).optional(), // legacy
+
   location: z.string().max(100).optional().or(z.literal('')),
   imageUrl: z.string().url().optional().or(z.literal('')),
   imagePublicId: z.string().optional().or(z.literal('')),
+
+  // Feature extensions
+  recurrence: eventRecurrenceSchema.optional(),
+  reminders: z.array(eventReminderSchema).optional().default([]),
+  countdown: eventCountdownSchema.optional(),
+  milestone: eventMilestoneSchema.optional(),
+  linkedMemoryIds: z.array(z.string()).optional().default([]),
+
+  // Legacy
   reminderMinutes: z.number().int().min(0).max(10080).optional(),
-  isRecurringYearly: z.boolean().default(false),
+  isRecurringYearly: z.boolean().optional(),
+}).refine((data) => !!(data.startDate || data.date), {
+  message: 'Event start date is required',
+  path: ['startDate'],
+});
+
+export const linkMemoryToEventSchema = z.object({
+  memoryId: z.string().min(1, 'Memory ID is required'),
 });
 
 // Shared Link Schemas

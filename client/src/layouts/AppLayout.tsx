@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { usePresenceStore } from '../stores/presenceStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { socketService } from '../services/socket';
+import { Heart } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
 import { MobileNav } from '../components/layout/MobileNav';
 import { HeartParticlesCanvas } from '../components/3d/HeartParticlesCanvas';
@@ -71,8 +72,8 @@ export const AppLayout: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-space-950">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-romantic-600 to-lavender-500 flex items-center justify-center animate-pulse">
-            <span className="text-2xl">❤️</span>
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-600 to-purple-500 flex items-center justify-center animate-pulse">
+            <Heart className="w-6 h-6 text-white fill-white" />
           </div>
           <p className="text-sm font-medium text-slate-400">Loading your private room...</p>
         </div>

@@ -13,6 +13,7 @@ import {
   Shield,
   Crosshair,
   AlertCircle,
+  Skull,
 } from 'lucide-react';
 
 interface BattleshipGameProps {
@@ -249,11 +250,15 @@ export const BattleshipGame: React.FC<BattleshipGameProps> = ({
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className={`p-3 rounded-xl border flex items-center justify-between ${isReady ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300' : 'bg-white/5 border-white/10 text-slate-300'}`}>
               <span className="font-semibold">Your Fleet</span>
-              <span className="font-mono text-[11px]">{isReady ? '✓ Ready' : `${myFleet.length}/5 Placed`}</span>
+              <span className="font-mono text-[11px] flex items-center gap-1">
+                {isReady ? <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 inline" /> Ready</> : `${myFleet.length}/5 Placed`}
+              </span>
             </div>
             <div className={`p-3 rounded-xl border flex items-center justify-between ${isPartnerReady ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300' : 'bg-white/5 border-white/10 text-slate-300'}`}>
               <span className="font-semibold">{partner?.displayName || 'Partner'}</span>
-              <span className="font-mono text-[11px]">{isPartnerReady ? '✓ Ready' : 'Preparing...'}</span>
+              <span className="font-mono text-[11px] flex items-center gap-1">
+                {isPartnerReady ? <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 inline" /> Ready</> : 'Preparing...'}
+              </span>
             </div>
           </div>
 
@@ -526,7 +531,7 @@ export const BattleshipGame: React.FC<BattleshipGameProps> = ({
                             }`}
                           >
                             {shot?.result === 'hit' && <Flame className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />}
-                            {shot?.result === 'sunk' && <span className="text-[9px] font-bold">💥</span>}
+                            {shot?.result === 'sunk' && <Skull className="w-3.5 h-3.5 text-rose-400" />}
                             {shot?.result === 'miss' && <div className="w-1.5 h-1.5 rounded-full bg-blue-300/60" />}
                             {!shot && revealedShip && <div className="w-2 h-2 rounded-sm bg-purple-300/40" />}
                           </button>

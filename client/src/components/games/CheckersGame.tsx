@@ -220,9 +220,9 @@ export const CheckersGame: React.FC<CheckersGameProps> = ({
               {isFinished
                 ? 'The match has ended. Completed board is preserved below.'
                 : hasAnyJumps
-                ? '⚡ Mandatory capture rule in effect! You must jump.'
+                ? 'Mandatory capture rule in effect! You must jump.'
                 : isConsecutiveJump
-                ? '🔥 Double jump available! Continue capturing.'
+                ? 'Double jump available! Continue capturing.'
                 : isMyTurn
                 ? 'Tap any piece with highlighted moves to select destination.'
                 : 'Partner is contemplating their next maneuver.'}
