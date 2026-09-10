@@ -4,7 +4,8 @@ export interface IGame extends Document {
   _id: Types.ObjectId;
   coupleId: Types.ObjectId;
   type: 'xo' | 'bingo';
-  status: 'waiting' | 'in_progress' | 'finished' | 'draw';
+  status: 'setup' | 'waiting' | 'in_progress' | 'finished' | 'draw' | 'cancelled';
+  config?: Record<string, any>;
   state: Record<string, any>;
   winner?: Types.ObjectId | null;
   createdBy: Types.ObjectId;
@@ -28,8 +29,12 @@ const GameSchema = new Schema<IGame>(
     },
     status: {
       type: String,
-      enum: ['waiting', 'in_progress', 'finished', 'draw'],
+      enum: ['setup', 'waiting', 'in_progress', 'finished', 'draw', 'cancelled'],
       default: 'in_progress',
+    },
+    config: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
     state: {
       type: Schema.Types.Mixed,

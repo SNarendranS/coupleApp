@@ -6,6 +6,8 @@ export interface ICouple extends Document {
   name?: string;
   relationshipStartDate?: Date;
   coverImage?: string;
+  avatarUrl?: string;
+  avatarPublicId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +35,14 @@ const CoupleSchema = new Schema<ICouple>(
       default: null,
     },
     coverImage: {
+      type: String,
+      default: '',
+    },
+    avatarUrl: {
+      type: String,
+      default: '',
+    },
+    avatarPublicId: {
       type: String,
       default: '',
     },

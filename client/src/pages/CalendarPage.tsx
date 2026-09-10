@@ -15,7 +15,9 @@ import {
   Trash2,
   X,
   Heart,
+  ImageIcon,
 } from 'lucide-react';
+import { ImageUploader } from '../components/ui/ImageUploader';
 
 export const CalendarPage: React.FC = () => {
   const { user, partner, couple } = useAuthStore();
@@ -33,6 +35,8 @@ export const CalendarPage: React.FC = () => {
     allDay: true,
     type: 'plan' as CalendarEventType,
     location: '',
+    imageUrl: '',
+    imagePublicId: '',
     isRecurringYearly: false,
   });
 
@@ -95,6 +99,8 @@ export const CalendarPage: React.FC = () => {
         allDay: true,
         type: 'plan',
         location: '',
+        imageUrl: '',
+        imagePublicId: '',
         isRecurringYearly: false,
       });
     }
@@ -266,8 +272,13 @@ export const CalendarPage: React.FC = () => {
                 selectedDayEvents.map((evt) => (
                   <div
                     key={evt.id}
-                    className="p-3.5 rounded-2xl bg-white/5 border border-white/10 relative group"
+                    className="p-3.5 rounded-2xl bg-white/5 border border-white/10 relative group space-y-2.5"
                   >
+                    {evt.imageUrl && (
+                      <div className="w-full h-32 rounded-xl overflow-hidden border border-white/10 bg-black/20">
+                        <img src={evt.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                    )}
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <span
@@ -398,6 +409,19 @@ export const CalendarPage: React.FC = () => {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Special reservations or cute surprises..."
                   className="glass-input w-full px-3.5 py-2 rounded-xl text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Event Photo (Optional)</label>
+                <ImageUploader
+                  value={form.imageUrl}
+                  onChange={(url, mediaId) => setForm({ ...form, imageUrl: url, imagePublicId: mediaId || '' })}
+                  onRemove={() => setForm({ ...form, imageUrl: '', imagePublicId: '' })}
+                  category="event"
+                  aspectRatio="wide"
+                  placeholderText="Upload photo for this event"
+                  compact={true}
                 />
               </div>
 

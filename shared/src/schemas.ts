@@ -54,6 +54,8 @@ export const coupleSettingsSchema = z.object({
   name: z.string().min(1).max(50).trim().optional(),
   relationshipStartDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
   coverImage: z.string().url().optional().or(z.literal('')),
+  avatarUrl: z.string().url().optional().or(z.literal('')),
+  avatarPublicId: z.string().optional().or(z.literal('')),
 });
 
 // Drawing Schemas
@@ -80,6 +82,20 @@ export const gameMoveSchema = z.object({
   }),
 });
 
+export const bingoSetupSchema = z.object({
+  fillMode: z.enum(['manual', 'timed', 'automatic']).default('automatic'),
+  timeLimitSeconds: z.number().int().min(10).max(300).optional().default(30),
+});
+
+export const bingoSubmitBoardSchema = z.object({
+  gameId: z.string().min(1),
+  board: z.array(z.array(z.number().int().min(1).max(25)).length(5)).length(5),
+});
+
+export const gameRestartSchema = z.object({
+  gameId: z.string().min(1),
+});
+
 // Calendar Schemas
 export const calendarEventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100).trim(),
@@ -90,6 +106,8 @@ export const calendarEventSchema = z.object({
   allDay: z.boolean().default(true),
   type: z.enum(['memory', 'anniversary', 'plan', 'date_night', 'birthday']),
   location: z.string().max(100).optional().or(z.literal('')),
+  imageUrl: z.string().url().optional().or(z.literal('')),
+  imagePublicId: z.string().optional().or(z.literal('')),
   reminderMinutes: z.number().int().min(0).max(10080).optional(),
   isRecurringYearly: z.boolean().default(false),
 });
@@ -125,3 +143,6 @@ export type SharedLinkInput = z.infer<typeof sharedLinkSchema>;
 export type MemoryInput = z.infer<typeof memorySchema>;
 export type DrawingStrokeInput = z.infer<typeof drawingStrokeSchema>;
 export type GameMoveInput = z.infer<typeof gameMoveSchema>;
+export type BingoSetupInput = z.infer<typeof bingoSetupSchema>;
+export type BingoSubmitBoardInput = z.infer<typeof bingoSubmitBoardSchema>;
+export type GameRestartInput = z.infer<typeof gameRestartSchema>;

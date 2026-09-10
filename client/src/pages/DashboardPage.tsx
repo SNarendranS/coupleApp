@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { usePresenceStore } from '../stores/presenceStore';
 import { api } from '../services/api';
 import { CanvasPreview } from '../components/drawing/CanvasPreview';
+import { CoupleAvatar } from '../components/couple/CoupleAvatar';
 import {
   Heart,
   Palette,
@@ -66,20 +67,23 @@ export const DashboardPage: React.FC = () => {
         <div className="absolute -left-12 -top-12 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-rose-300">
-              <Sparkles className="w-3.5 h-3.5" /> Private Couple Sanctuary
+          <div className="flex items-center gap-4">
+            <CoupleAvatar size="lg" editable={true} />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-rose-300">
+                <Sparkles className="w-3.5 h-3.5" /> Private Couple Sanctuary
+              </div>
+              <h1 className="font-serif text-2xl sm:text-4xl font-bold text-white tracking-tight">
+                {couple?.name || `${user?.displayName} & ${partner?.displayName}`}
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300">
+                {daysTogether > 0 ? (
+                  <>Together for <strong className="text-white">{daysTogether} days</strong> of shared laughter, love, and memories.</>
+                ) : (
+                  <>Welcome to day one of your shared digital space together.</>
+                )}
+              </p>
             </div>
-            <h1 className="font-serif text-2xl sm:text-4xl font-bold text-white tracking-tight">
-              {couple?.name || `${user?.displayName} & ${partner?.displayName}`}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300">
-              {daysTogether > 0 ? (
-                <>Together for <strong className="text-white">{daysTogether} days</strong> of shared laughter, love, and memories.</>
-              ) : (
-                <>Welcome to day one of your shared digital space together.</>
-              )}
-            </p>
           </div>
 
           {/* Partner Status Pill */}

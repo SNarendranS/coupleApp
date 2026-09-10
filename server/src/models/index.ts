@@ -9,3 +9,4 @@ export * from './SharedLink';
 export * from './Memory';
 export * from './Notification';
 export * from './Activity';
+export * from './Media';

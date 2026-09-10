@@ -90,6 +90,47 @@ class ApiClient {
   delete<T = any>(endpoint: string): Promise<ApiResult<T>> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
+
+  async upload<T = any>(endpoint: string, formData: FormData): Promise<ApiResult<T>> {
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+      });
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: {
+            code: json?.error?.code || `HTTP_${response.status}`,
+            message: json?.error?.message || response.statusText || 'Upload failed',
+            details: json?.error?.details,
+          },
+        };
+      }
+
+      return json as ApiResult<T>;
+    } catch (err: any) {
+      return {
+        success: false,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: err.message || 'Unable to connect to upload server.',
+        },
+      };
+    }
+  }
 }
 
 export const api = new ApiClient();

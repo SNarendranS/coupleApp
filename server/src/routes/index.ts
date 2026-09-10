@@ -9,6 +9,7 @@ import { linksRoutes } from './links.routes';
 import { memoriesRoutes } from './memories.routes';
 import { notificationRoutes } from './notifications.routes';
 import { activityRoutes } from './activity.routes';
+import { uploadRoutes } from './upload.routes';
 
 const apiRouter = Router();
 
@@ -22,5 +23,6 @@ apiRouter.use('/links', linksRoutes);
 apiRouter.use('/memories', memoriesRoutes);
 apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/activity', activityRoutes);
+apiRouter.use('/upload', uploadRoutes);
 
 export { apiRouter };

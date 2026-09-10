@@ -26,6 +26,8 @@ export interface CoupleDTO {
   name?: string;
   relationshipStartDate?: string;
   coverImage?: string;
+  avatarUrl?: string;
+  avatarPublicId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,7 +75,15 @@ export interface DrawingBoardDTO {
 
 // Game types
 export type GameType = 'xo' | 'bingo';
-export type GameStatus = 'waiting' | 'in_progress' | 'finished' | 'draw';
+export type GameStatus = 'setup' | 'waiting' | 'in_progress' | 'finished' | 'draw' | 'cancelled';
+
+export type BingoFillMode = 'manual' | 'timed' | 'automatic';
+
+export interface BingoConfig {
+  fillMode: BingoFillMode;
+  timeLimitSeconds?: number;
+  setupStartedAt?: string;
+}
 
 export interface XOGameState {
   board: (string | null)[]; // 9 items: 'X', 'O', or null
@@ -82,16 +92,18 @@ export interface XOGameState {
   currentTurn: string; // userId
   winningLine: number[] | null;
   winner: string | null; // userId or null
+  movesCount?: number;
 }
 
 export interface BingoGameState {
   players: string[]; // [userA, userB]
-  playerBoards: Record<string, number[][]>; // 5x5 matrix of numbers 1-25 or couple milestone IDs
+  playerBoards: Record<string, (number | null)[][]>; // 5x5 matrix
   calledNumbers: number[];
   playerLinesCompleted: Record<string, number>; // count of completed 5-in-a-row lines
   currentTurn: string; // userId
   winner: string | null;
-  winningLines: Record<string, number[][]>; // lines completed per player
+  winningLines?: Record<string, number[][]>; // lines completed per player
+  readyPlayers?: string[]; // userIds of players ready
 }
 
 export interface GameDTO {
@@ -99,12 +111,32 @@ export interface GameDTO {
   coupleId: string;
   type: GameType;
   status: GameStatus;
+  config?: BingoConfig;
   state: XOGameState | BingoGameState;
   winner?: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
   finishedAt?: string;
+}
+
+// Media types
+export type MediaCategory = 'couple_avatar' | 'event' | 'memory';
+
+export interface MediaDTO {
+  id: string;
+  coupleId: string;
+  uploadedBy: string;
+  category: MediaCategory;
+  provider: 'cloudinary' | 'local';
+  publicId: string;
+  url: string;
+  thumbnailUrl?: string;
+  mimeType: string;
+  bytes: number;
+  width?: number;
+  height?: number;
+  createdAt: string;
 }
 
 // Calendar types
@@ -122,6 +154,8 @@ export interface CalendarEventDTO {
   allDay: boolean;
   type: CalendarEventType;
   location?: string;
+  imageUrl?: string;
+  imagePublicId?: string;
   reminderMinutes?: number;
   isRecurringYearly?: boolean;
   createdAt: string;

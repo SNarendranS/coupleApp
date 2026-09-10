@@ -26,6 +26,8 @@ export class CoupleService {
       relationshipStartDate: couple.relationshipStartDate,
       daysTogether,
       coverImage: couple.coverImage,
+      avatarUrl: couple.avatarUrl,
+      avatarPublicId: couple.avatarPublicId,
       members: members.map((m) => ({
         id: m._id.toString(),
         username: m.username,
@@ -40,7 +42,16 @@ export class CoupleService {
     };
   }
 
-  static async updateCoupleSettings(coupleId: string, updates: { name?: string; relationshipStartDate?: string; coverImage?: string }) {
+  static async updateCoupleSettings(
+    coupleId: string,
+    updates: {
+      name?: string;
+      relationshipStartDate?: string;
+      coverImage?: string;
+      avatarUrl?: string;
+      avatarPublicId?: string;
+    }
+  ) {
     const couple = await Couple.findById(coupleId);
     if (!couple) {
       const err: any = new Error('Couple not found');
@@ -53,6 +64,17 @@ export class CoupleService {
       couple.relationshipStartDate = updates.relationshipStartDate ? new Date(updates.relationshipStartDate) : undefined;
     }
     if (updates.coverImage !== undefined) couple.coverImage = updates.coverImage;
+
+    if (updates.avatarUrl !== undefined) {
+      // Clean up previous avatar if replaced or removed
+      if (couple.avatarPublicId && couple.avatarPublicId !== updates.avatarPublicId) {
+        import('./storage.service').then(({ storageService }) => {
+          storageService.deleteImage(couple.avatarPublicId!).catch(() => {});
+        });
+      }
+      couple.avatarUrl = updates.avatarUrl;
+      couple.avatarPublicId = updates.avatarPublicId || '';
+    }
 
     await couple.save();
     return this.getCoupleDetails(coupleId);

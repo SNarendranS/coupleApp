@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../services/api';
-import { Settings as SettingsIcon, Heart, User, Sparkles, Check, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, Heart, User, Sparkles, Check, LogOut, Camera } from 'lucide-react';
+import { CoupleAvatar } from '../components/couple/CoupleAvatar';
+import { ImageUploader } from '../components/ui/ImageUploader';
 
 const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -89,9 +91,20 @@ export const SettingsPage: React.FC = () => {
               </div>
               <h2 className="font-serif text-lg font-bold text-white">Couple Space Settings</h2>
             </div>
-            <p className="text-xs text-slate-400 mb-6">
+            <p className="text-xs text-slate-400 mb-4">
               Shared between you and {partner?.displayName || 'your partner'}.
             </p>
+
+            {/* Couple Profile Avatar Preview & Trigger */}
+            <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/10 mb-5">
+              <CoupleAvatar size="lg" editable={true} />
+              <div>
+                <p className="text-xs font-semibold text-white">Couple Profile Photo</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Tap the photo to upload or change your shared couple picture.
+                </p>
+              </div>
+            </div>
 
             <form onSubmit={handleCoupleSubmit} className="space-y-4">
               <div>
@@ -161,21 +174,24 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Avatar</label>
-                <div className="flex items-center gap-2 mb-2">
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">Avatar Photo</label>
+                <div className="flex items-center gap-3 mb-3">
                   <img
-                    src={personalForm.avatarUrl}
+                    src={personalForm.avatarUrl || AVATAR_PRESETS[0]}
                     alt=""
-                    className="w-10 h-10 rounded-full object-cover border border-rose-400"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-rose-400 shadow-md shrink-0"
                   />
-                  <input
-                    type="url"
-                    value={personalForm.avatarUrl}
-                    onChange={(e) => setPersonalForm({ ...personalForm, avatarUrl: e.target.value })}
-                    placeholder="Or paste avatar URL..."
-                    className="glass-input flex-1 px-3.5 py-1.5 rounded-xl text-xs"
-                  />
+                  <div className="flex-1">
+                    <ImageUploader
+                      compact={true}
+                      value={personalForm.avatarUrl}
+                      onChange={(url) => setPersonalForm({ ...personalForm, avatarUrl: url })}
+                      category="couple_avatar"
+                      placeholderText="Upload photo"
+                    />
+                  </div>
                 </div>
+                <p className="text-[11px] text-slate-400 mb-1.5">Or choose a preset style:</p>
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {AVATAR_PRESETS.map((url, i) => (
                     <button
@@ -183,7 +199,7 @@ export const SettingsPage: React.FC = () => {
                       type="button"
                       onClick={() => setPersonalForm({ ...personalForm, avatarUrl: url })}
                       className={`w-8 h-8 rounded-full overflow-hidden shrink-0 border-2 transition-transform ${
-                        personalForm.avatarUrl === url ? 'border-rose-400 scale-110' : 'border-transparent opacity-60'
+                        personalForm.avatarUrl === url ? 'border-rose-400 scale-110 shadow-sm' : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
                     >
                       <img src={url} alt="" className="w-full h-full object-cover" />

@@ -1,4 +1,5 @@
-import { Game, Couple, Activity, Notification, User } from '../models';
+import { Game, Couple, Activity, User } from '../models';
+import { BingoConfig } from '@couple/shared';
 
 export class GameService {
   // -------------------------------------------------------------
@@ -16,7 +17,34 @@ export class GameService {
   ];
 
   static async getActiveGame(coupleId: string, type: 'xo' | 'bingo') {
-    return Game.findOne({ coupleId, type, status: 'in_progress' });
+    // 1. Check for active or setup game
+    const activeGame = await Game.findOne({
+      coupleId,
+      type,
+      status: { $in: ['in_progress', 'setup', 'waiting'] },
+    });
+
+    if (activeGame) {
+      // If Bingo timed setup has expired, auto-fill and advance to in_progress
+      if (activeGame.type === 'bingo' && activeGame.status === 'setup') {
+        const config = activeGame.config;
+        if (config?.fillMode === 'timed' && config?.setupStartedAt && config?.timeLimitSeconds) {
+          const startTime = new Date(config.setupStartedAt).getTime();
+          const now = Date.now();
+          if (now - startTime >= config.timeLimitSeconds * 1000) {
+            await this.finalizeBingoSetup(activeGame);
+          }
+        }
+      }
+      return activeGame;
+    }
+
+    // 2. If no active game, return the most recent finished game for post-game review
+    return Game.findOne({
+      coupleId,
+      type,
+      status: { $in: ['finished', 'draw'] },
+    }).sort({ createdAt: -1 });
   }
 
   static async getGameHistory(coupleId: string, type?: 'xo' | 'bingo') {
@@ -30,10 +58,10 @@ export class GameService {
   }
 
   static async startXOGame(coupleId: string, createdBy: string) {
-    // Check if there is an active game already; if so, finish or replace it
+    // End any active game
     await Game.updateMany(
-      { coupleId, type: 'xo', status: 'in_progress' },
-      { status: 'finished', finishedAt: new Date() }
+      { coupleId, type: 'xo', status: { $in: ['in_progress', 'setup'] } },
+      { status: 'cancelled', finishedAt: new Date() }
     );
 
     const couple = await Couple.findById(coupleId);
@@ -57,6 +85,7 @@ export class GameService {
         currentTurn: playerX, // Player X goes first
         winningLine: null,
         winner: null,
+        movesCount: 0,
       },
     });
 
@@ -72,7 +101,7 @@ export class GameService {
     }
 
     if (game.status !== 'in_progress') {
-      const err: any = new Error('Game has already finished');
+      const err: any = new Error('Game is not active');
       err.statusCode = 400;
       throw err;
     }
@@ -94,6 +123,7 @@ export class GameService {
     const isPlayerX = userId === state.playerX;
     const symbol = isPlayerX ? 'X' : 'O';
     state.board[cellIndex] = symbol;
+    state.movesCount = (state.movesCount || 0) + 1;
 
     // Check for win
     let winningLine: number[] | null = null;
@@ -121,7 +151,7 @@ export class GameService {
         coupleId: game.coupleId,
         userId,
         action: 'game_won',
-        details: `${winnerUser?.displayName || 'Player'} won the XO match!`,
+        details: `${winnerUser?.displayName || 'Player'} won the XO match in ${state.movesCount} moves!`,
       });
     } else if (state.board.every((cell: string | null) => cell !== null)) {
       // Draw
@@ -146,6 +176,41 @@ export class GameService {
     return game;
   }
 
+  static async restartGame(coupleId: string, userId: string, gameId: string) {
+    const game = await Game.findOne({ _id: gameId, coupleId });
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // Cancel old game
+    game.status = 'cancelled';
+    game.finishedAt = new Date();
+    await game.save();
+
+    // Start fresh game of the same type
+    if (game.type === 'xo') {
+      return this.startXOGame(coupleId, userId);
+    } else {
+      return this.initBingoSetup(coupleId, userId, game.config as any);
+    }
+  }
+
+  static async endGame(coupleId: string, _userId: string, gameId: string) {
+    const game = await Game.findOne({ _id: gameId, coupleId });
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    game.status = 'cancelled';
+    game.finishedAt = new Date();
+    await game.save();
+    return game;
+  }
+
   // -------------------------------------------------------------
   // BINGO ENGINE (Authoritative 2-Player Couple Bingo)
   // -------------------------------------------------------------
@@ -164,12 +229,56 @@ export class GameService {
     return board;
   }
 
+  private static createEmptyBoard(): (number | null)[][] {
+    return Array.from({ length: 5 }, () => Array(5).fill(null));
+  }
+
+  private static fillRemainingCells(board: (number | null)[][]): number[][] {
+    const used = new Set<number>();
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const val = board[r]?.[c];
+        if (typeof val === 'number' && val >= 1 && val <= 25) {
+          used.add(val);
+        }
+      }
+    }
+
+    const unused: number[] = [];
+    for (let i = 1; i <= 25; i++) {
+      if (!used.has(i)) unused.push(i);
+    }
+
+    // Shuffle unused
+    for (let i = unused.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [unused[i], unused[j]] = [unused[j], unused[i]];
+    }
+
+    const result: number[][] = [];
+    let unusedIdx = 0;
+    for (let r = 0; r < 5; r++) {
+      const row: number[] = [];
+      for (let c = 0; c < 5; c++) {
+        const val = board[r]?.[c];
+        if (typeof val === 'number' && val >= 1 && val <= 25) {
+          row.push(val);
+        } else {
+          row.push(unused[unusedIdx++]);
+        }
+      }
+      result.push(row);
+    }
+    return result;
+  }
+
   private static calculateBingoLines(board: number[][], calledNumbers: Set<number>): number {
+    if (!board || board.length !== 5) return 0;
     let completed = 0;
 
     // Check rows
     for (let r = 0; r < 5; r++) {
-      if (board[r].every((n) => calledNumbers.has(n))) {
+      if (board[r] && board[r].every((n) => calledNumbers.has(n))) {
         completed++;
       }
     }
@@ -209,10 +318,11 @@ export class GameService {
     return completed;
   }
 
-  static async startBingoGame(coupleId: string, createdBy: string) {
+  static async initBingoSetup(coupleId: string, createdBy: string, config?: BingoConfig) {
+    // Cancel any active or setup Bingo games
     await Game.updateMany(
-      { coupleId, type: 'bingo', status: 'in_progress' },
-      { status: 'finished', finishedAt: new Date() }
+      { coupleId, type: 'bingo', status: { $in: ['in_progress', 'setup'] } },
+      { status: 'cancelled', finishedAt: new Date() }
     );
 
     const couple = await Couple.findById(coupleId);
@@ -221,17 +331,57 @@ export class GameService {
     }
 
     const [userA, userB] = couple.memberIds.map((id) => id.toString());
+    const fillMode = config?.fillMode || 'automatic';
+    const timeLimitSeconds = config?.timeLimitSeconds || 30;
 
-    const playerBoards: Record<string, number[][]> = {
-      [userA]: this.generateShuffledBoard(),
-      [userB]: this.generateShuffledBoard(),
+    const gameConfig: BingoConfig = {
+      fillMode,
+      timeLimitSeconds,
+      setupStartedAt: new Date().toISOString(),
+    };
+
+    if (fillMode === 'automatic') {
+      // Instant board generation & direct transition to in_progress
+      const playerBoards: Record<string, number[][]> = {
+        [userA]: this.generateShuffledBoard(),
+        [userB]: this.generateShuffledBoard(),
+      };
+
+      const game = await Game.create({
+        coupleId,
+        type: 'bingo',
+        status: 'in_progress',
+        createdBy,
+        config: gameConfig,
+        state: {
+          players: [userA, userB],
+          playerBoards,
+          calledNumbers: [],
+          playerLinesCompleted: {
+            [userA]: 0,
+            [userB]: 0,
+          },
+          currentTurn: createdBy,
+          winner: null,
+          readyPlayers: [userA, userB],
+        },
+      });
+
+      return game;
+    }
+
+    // Manual or Timed Manual setup
+    const playerBoards: Record<string, (number | null)[][]> = {
+      [userA]: this.createEmptyBoard(),
+      [userB]: this.createEmptyBoard(),
     };
 
     const game = await Game.create({
       coupleId,
       type: 'bingo',
-      status: 'in_progress',
+      status: 'setup',
       createdBy,
+      config: gameConfig,
       state: {
         players: [userA, userB],
         playerBoards,
@@ -242,9 +392,108 @@ export class GameService {
         },
         currentTurn: createdBy,
         winner: null,
+        readyPlayers: [],
       },
     });
 
+    return game;
+  }
+
+  static async submitBingoBoard(gameId: string, userId: string, board: number[][]) {
+    const game = await Game.findById(gameId);
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (game.status !== 'setup') {
+      const err: any = new Error('Game setup phase has already ended');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Validate 5x5 matrix
+    if (!Array.isArray(board) || board.length !== 5 || board.some((r) => !Array.isArray(r) || r.length !== 5)) {
+      const err: any = new Error('Board must be a 5x5 grid');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Validate unique numbers 1-25
+    const flat = board.flat();
+    const unique = new Set(flat);
+    if (unique.size !== 25 || flat.some((n) => typeof n !== 'number' || n < 1 || n > 25)) {
+      const err: any = new Error('Board must contain every number from 1 to 25 exactly once');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const state = game.state;
+    state.playerBoards[userId] = board;
+
+    const readyPlayers: string[] = state.readyPlayers || [];
+    if (!readyPlayers.includes(userId)) {
+      readyPlayers.push(userId);
+      state.readyPlayers = readyPlayers;
+    }
+
+    // If both players have submitted boards, start active gameplay!
+    const players: string[] = state.players;
+    if (players.every((p) => readyPlayers.includes(p))) {
+      game.status = 'in_progress';
+    }
+
+    game.markModified('state');
+    await game.save();
+    return game;
+  }
+
+  static async autoFillBingoBoard(gameId: string, userId: string) {
+    const game = await Game.findById(gameId);
+    if (!game) {
+      const err: any = new Error('Game not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (game.status !== 'setup') {
+      return game;
+    }
+
+    const state = game.state;
+    const currentBoard = state.playerBoards[userId] || this.createEmptyBoard();
+    state.playerBoards[userId] = this.fillRemainingCells(currentBoard);
+
+    const readyPlayers: string[] = state.readyPlayers || [];
+    if (!readyPlayers.includes(userId)) {
+      readyPlayers.push(userId);
+      state.readyPlayers = readyPlayers;
+    }
+
+    const players: string[] = state.players;
+    if (players.every((p) => readyPlayers.includes(p))) {
+      game.status = 'in_progress';
+    }
+
+    game.markModified('state');
+    await game.save();
+    return game;
+  }
+
+  private static async finalizeBingoSetup(game: any) {
+    const state = game.state;
+    const players: string[] = state.players;
+
+    for (const p of players) {
+      const board = state.playerBoards[p] || this.createEmptyBoard();
+      state.playerBoards[p] = this.fillRemainingCells(board);
+    }
+
+    state.readyPlayers = [...players];
+    game.status = 'in_progress';
+    game.markModified('state');
+    await game.save();
     return game;
   }
 
@@ -254,6 +503,11 @@ export class GameService {
       const err: any = new Error('Game not found');
       err.statusCode = 404;
       throw err;
+    }
+
+    // If still in setup but timer expired, auto-finalize
+    if (game.status === 'setup') {
+      await this.finalizeBingoSetup(game);
     }
 
     if (game.status !== 'in_progress') {

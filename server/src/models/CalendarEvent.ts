@@ -12,6 +12,8 @@ export interface ICalendarEvent extends Document {
   allDay: boolean;
   type: 'memory' | 'anniversary' | 'plan' | 'date_night' | 'birthday';
   location?: string;
+  imageUrl?: string;
+  imagePublicId?: string;
   reminderMinutes?: number;
   isRecurringYearly: boolean;
   createdAt: Date;
@@ -64,6 +66,14 @@ const CalendarEventSchema = new Schema<ICalendarEvent>(
       default: 'plan',
     },
     location: {
+      type: String,
+      default: '',
+    },
+    imageUrl: {
+      type: String,
+      default: '',
+    },
+    imagePublicId: {
       type: String,
       default: '',
     },

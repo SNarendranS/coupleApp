@@ -62,6 +62,7 @@ export const DrawingPage: React.FC = () => {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isSizePopoverOpen, setIsSizePopoverOpen] = useState(false);
   const currentStrokePoints = useRef<{ x: number; y: number }[]>([]);
   const currentStrokeId = useRef<string>('');
 
@@ -261,6 +262,7 @@ export const DrawingPage: React.FC = () => {
 
   // Drawing Handlers
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isSizePopoverOpen) setIsSizePopoverOpen(false);
     const coords = getVirtualCoordinates(e);
     setIsDrawing(true);
     currentStrokeId.current = generateUUID();
@@ -410,28 +412,27 @@ export const DrawingPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Compact Brush Size Indicator / Selector (3 Size Dots) */}
-          <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/5 border border-white/10 shrink-0">
-            {[
-              { label: 'Fine', value: 6, dotClass: 'w-1.5 h-1.5' },
-              { label: 'Medium', value: 12, dotClass: 'w-2.5 h-2.5' },
-              { label: 'Bold', value: 24, dotClass: 'w-3.5 h-3.5' },
-            ].map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                onClick={() => setWidth(s.value)}
-                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg transition-all flex items-center justify-center ${
-                  width === s.value
-                    ? 'bg-romantic-500 text-white shadow-sm ring-1 ring-white/50'
-                    : 'text-slate-400 hover:text-white bg-transparent'
-                }`}
-                title={`${s.label} brush (${s.value}px)`}
-              >
-                <span className={`rounded-full bg-current ${s.dotClass}`} />
-              </button>
-            ))}
-          </div>
+          {/* Mobile-First Brush Size Button (Toggles Slider Drawer) */}
+          <button
+            type="button"
+            onClick={() => setIsSizePopoverOpen((prev) => !prev)}
+            className={`px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border shrink-0 ${
+              isSizePopoverOpen
+                ? 'bg-romantic-600 border-romantic-400 text-white shadow-glow'
+                : 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
+            }`}
+            title="Adjust brush size (2px - 48px)"
+          >
+            <div
+              className="rounded-full shrink-0 transition-all border border-white/30"
+              style={{
+                width: Math.max(7, Math.min(16, width)),
+                height: Math.max(7, Math.min(16, width)),
+                backgroundColor: tool === 'eraser' ? '#ffffff' : color,
+              }}
+            />
+            <span className="text-[11px] sm:text-xs font-bold font-mono">{width}px</span>
+          </button>
 
           {/* Action Buttons: Theme, Undo, Clear, Download (All 4 fully visible on mobile) */}
           <div className="flex items-center gap-1 shrink-0">
@@ -472,6 +473,63 @@ export const DrawingPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Expandable Mobile-First Size Slider Drawer */}
+        {isSizePopoverOpen && (
+          <div className="w-full p-3 rounded-2xl bg-space-950/95 border border-white/15 backdrop-blur-md shadow-2xl space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-300 font-medium flex items-center gap-2">
+                <span>Stroke Width:</span>
+                <strong className="text-white font-bold text-sm font-mono">{width}px</strong>
+              </span>
+
+              {/* Quick Presets */}
+              <div className="flex items-center gap-1.5">
+                {[4, 8, 16, 24, 36].map((sz) => (
+                  <button
+                    key={sz}
+                    type="button"
+                    onClick={() => setWidth(sz)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                      width === sz
+                        ? 'bg-romantic-600 text-white shadow-sm ring-1 ring-white/40'
+                        : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {sz}px
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Range Slider & Dynamic Live Circle Preview */}
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-slate-500 font-mono">2px</span>
+              <input
+                type="range"
+                min={2}
+                max={48}
+                step={1}
+                value={width}
+                onChange={(e) => setWidth(Number(e.target.value))}
+                className="w-full accent-romantic-500 h-2.5 bg-white/10 rounded-lg cursor-pointer transition-all"
+              />
+              <span className="text-[10px] text-slate-500 font-mono">48px</span>
+
+              {/* Dynamic Preview Circle matching current tool and color */}
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <div
+                  className="rounded-full transition-all border border-white/20"
+                  style={{
+                    width: Math.max(3, Math.min(28, width)),
+                    height: Math.max(3, Math.min(28, width)),
+                    backgroundColor: tool === 'eraser' ? '#ffffff' : color,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Row 2: Touch-Friendly Color Palette (All 10 swatches fit perfectly without clipping) */}
         <div className="flex items-center justify-between gap-1 sm:gap-2.5 overflow-x-auto scrollbar-none py-0.5 px-0.5">

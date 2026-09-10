@@ -53,6 +53,12 @@ export function createApp(): Express {
   // API Routes
   app.use('/api', apiRouter);
 
+  // Serve uploaded assets in development / test fallback
+  const uploadsPath = path.resolve(__dirname, '../uploads');
+  if (fs.existsSync(uploadsPath)) {
+    app.use('/uploads', express.static(uploadsPath));
+  }
+
   // Serve static client assets if client/dist exists (Unified Production Deployment)
   const clientDistPath = path.resolve(__dirname, '../../client/dist');
   if (fs.existsSync(clientDistPath)) {

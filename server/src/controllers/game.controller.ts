@@ -30,15 +30,41 @@ export class GameController {
 
   static async startGame(req: Request, res: Response, next: NextFunction) {
     try {
-      const { type } = req.body;
+      const { type, config } = req.body;
       let game;
       if (type === 'bingo') {
-        game = await GameService.startBingoGame(req.coupleId!, req.userId!);
+        game = await GameService.initBingoSetup(req.coupleId!, req.userId!, config);
       } else {
         game = await GameService.startXOGame(req.coupleId!, req.userId!);
       }
 
       res.status(201).json({
+        success: true,
+        data: game,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async submitBoard(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { gameId, board } = req.body;
+      const game = await GameService.submitBingoBoard(gameId, req.userId!, board);
+      res.status(200).json({
+        success: true,
+        data: game,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async autoFillBoard(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { gameId } = req.body;
+      const game = await GameService.autoFillBingoBoard(gameId, req.userId!);
+      res.status(200).json({
         success: true,
         data: game,
       });
@@ -67,6 +93,32 @@ export class GameController {
       res.status(200).json({
         success: true,
         data: updatedGame,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async restartGame(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { gameId } = req.body;
+      const game = await GameService.restartGame(req.coupleId!, req.userId!, gameId);
+      res.status(200).json({
+        success: true,
+        data: game,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async endGame(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { gameId } = req.body;
+      const game = await GameService.endGame(req.coupleId!, req.userId!, gameId);
+      res.status(200).json({
+        success: true,
+        data: game,
       });
     } catch (error) {
       next(error);

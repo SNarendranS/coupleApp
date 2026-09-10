@@ -4,6 +4,7 @@ import { useMemoriesStore } from '../stores/memoriesStore';
 import { api } from '../services/api';
 import { socketService } from '../services/socket';
 import { MemoryDTO, SOCKET_EVENTS } from '@couple/shared';
+import { ImageUploader } from '../components/ui/ImageUploader';
 import {
   Image as ImageIcon,
   Plus,
@@ -13,26 +14,23 @@ import {
   Trash2,
   X,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
 } from 'lucide-react';
 
-const SAMPLE_PHOTO_PRESETS = [
-  'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop&q=80',
-];
-
 export const MemoriesPage: React.FC = () => {
-  const { user, partner, couple } = useAuthStore();
+  const { user, partner } = useAuthStore();
   const { memories, setMemories, addMemory, deleteMemory } = useMemoriesStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     title: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
-    imageUrl: SAMPLE_PHOTO_PRESETS[0],
+    imageUrls: [] as string[],
     location: '',
     tags: 'love, adventure',
   });
@@ -73,7 +71,7 @@ export const MemoriesPage: React.FC = () => {
       title: form.title,
       description: form.description,
       date: form.date,
-      imageUrls: form.imageUrl ? [form.imageUrl] : [],
+      imageUrls: form.imageUrls,
       location: form.location,
       tags: tagList,
     });
@@ -85,7 +83,7 @@ export const MemoriesPage: React.FC = () => {
         title: '',
         description: '',
         date: new Date().toISOString().split('T')[0],
-        imageUrl: SAMPLE_PHOTO_PRESETS[0],
+        imageUrls: [],
         location: '',
         tags: 'love, adventure',
       });
@@ -99,24 +97,40 @@ export const MemoriesPage: React.FC = () => {
     }
   };
 
+  const handleAddPhoto = (url: string) => {
+    if (url && !form.imageUrls.includes(url)) {
+      setForm((prev) => ({ ...prev, imageUrls: [...prev.imageUrls, url] }));
+    }
+  };
+
+  const handleRemovePhoto = (indexToRemove: number) => {
+    setForm((prev) => ({
+      ...prev,
+      imageUrls: prev.imageUrls.filter((_, i) => i !== indexToRemove),
+    }));
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-rose-300">
-            <ImageIcon className="w-4 h-4 text-pink-400" /> Couple Scrapbook
+            <Sparkles className="w-3.5 h-3.5" /> Moments & Milestones
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            Our Shared Story
+            Our Shared Memory Book
           </h1>
+          <p className="text-xs sm:text-sm text-slate-300 mt-1">
+            Capture every trip, anniversary, date night, and everyday laugh together.
+          </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="btn-romantic px-4 py-2.5 text-xs font-semibold flex items-center gap-2 self-start sm:self-auto"
+          className="btn-romantic px-4 py-2.5 text-xs font-semibold flex items-center justify-center gap-2 shrink-0 shadow-glow"
         >
-          <Plus className="w-4 h-4" /> Add Memory
+          <Plus className="w-4 h-4" /> Add New Memory
         </button>
       </div>
 
@@ -139,88 +153,153 @@ export const MemoriesPage: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {memories.map((mem) => (
-            <div
-              key={mem.id}
-              className="glass-card rounded-3xl overflow-hidden border border-white/10 flex flex-col justify-between group"
-            >
-              <div>
-                {/* Photo Header */}
-                {mem.imageUrls && mem.imageUrls[0] && (
-                  <div className="relative h-48 w-full overflow-hidden">
-                    <img
-                      src={mem.imageUrls[0]}
-                      alt={mem.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-space-950 via-transparent to-transparent opacity-60" />
-                  </div>
-                )}
+          {memories.map((mem) => {
+            const hasMultiple = mem.imageUrls && mem.imageUrls.length > 1;
 
-                <div className="p-5">
-                  <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 mb-1.5">
-                    <span className="flex items-center gap-1 font-medium">
-                      <Calendar className="w-3 h-3 text-rose-400" /> {mem.date}
-                    </span>
-                    {mem.location && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-purple-400" /> {mem.location}
-                      </span>
-                    )}
-                  </div>
+            return (
+              <div
+                key={mem.id}
+                className="glass-card rounded-3xl overflow-hidden border border-white/10 flex flex-col justify-between group shadow-lg transition-all hover:border-rose-400/30"
+              >
+                <div>
+                  {/* Photo Section */}
+                  {mem.imageUrls && mem.imageUrls.length > 0 && (
+                    <div className="relative h-52 w-full overflow-hidden bg-space-950">
+                      <img
+                        src={mem.imageUrls[0]}
+                        alt={mem.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                        loading="lazy"
+                        onClick={() => setLightboxImage(mem.imageUrls[0])}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-space-950 via-transparent to-transparent opacity-60 pointer-events-none" />
 
-                  <h3 className="font-serif text-lg font-bold text-white mb-2 leading-snug">{mem.title}</h3>
+                      {/* Multi-Photo Badge */}
+                      {hasMultiple && (
+                        <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-space-950/80 backdrop-blur-md text-white text-[10px] font-bold border border-white/10 flex items-center gap-1 shadow-md">
+                          <ImageIcon className="w-3 h-3 text-rose-300" />
+                          <span>+{mem.imageUrls.length - 1} more</span>
+                        </div>
+                      )}
 
-                  {mem.description && (
-                    <p className="text-xs text-slate-300 leading-relaxed line-clamp-4 mb-3">
-                      {mem.description}
-                    </p>
+                      {/* Zoom Trigger */}
+                      <button
+                        type="button"
+                        onClick={() => setLightboxImage(mem.imageUrls[0])}
+                        className="absolute bottom-3 right-3 p-1.5 rounded-xl bg-space-950/80 text-white/80 hover:text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="View photo"
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
 
-                  {mem.tags && mem.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {mem.tags.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-slate-300 border border-white/5"
-                        >
-                          #{tag}
-                        </span>
+                  {/* Multi-Photo Mini Thumbnail Row */}
+                  {hasMultiple && (
+                    <div className="flex gap-1.5 px-5 pt-3 overflow-x-auto scrollbar-none">
+                      {mem.imageUrls.slice(1, 4).map((url, i) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt=""
+                          onClick={() => setLightboxImage(url)}
+                          className="w-10 h-10 rounded-lg object-cover border border-white/10 hover:border-rose-400 cursor-pointer transition-transform hover:scale-105"
+                          loading="lazy"
+                        />
                       ))}
                     </div>
                   )}
+
+                  <div className="p-5">
+                    <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 mb-1.5">
+                      <span className="flex items-center gap-1 font-medium">
+                        <Calendar className="w-3 h-3 text-rose-400" /> {mem.date}
+                      </span>
+                      {mem.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-purple-400" /> {mem.location}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="font-serif text-lg font-bold text-white mb-2 leading-snug">{mem.title}</h3>
+
+                    {mem.description && (
+                      <p className="text-xs text-slate-300 leading-relaxed line-clamp-3 mb-3">
+                        {mem.description}
+                      </p>
+                    )}
+
+                    {mem.tags && mem.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {mem.tags.map((t, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-slate-400 font-medium"
+                          >
+                            #{t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer / Delete */}
+                <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-500">
+                  <span>Saved by {mem.creatorName || 'Us'}</span>
+                  <button
+                    onClick={() => handleDelete(mem.id)}
+                    className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors"
+                    title="Delete Memory"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              {/* Bottom Card Footer */}
-              <div className="px-5 pb-4 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Added by {mem.creatorName || 'Partner'}</span>
-                <button
-                  onClick={() => handleDelete(mem.id)}
-                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 transition-all"
-                  title="Delete memory"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div
+          onClick={() => setLightboxImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
+        >
+          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
+            <img src={lightboxImage} alt="" className="max-w-full max-h-[85vh] object-contain rounded-2xl" />
+            <button
+              type="button"
+              onClick={() => setLightboxImage(null)}
+              className="absolute top-3 right-3 p-2 rounded-full bg-space-950/80 text-white border border-white/20 shadow-md"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
       {/* Add Memory Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass-panel rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h2 className="font-serif text-xl font-bold text-white mb-1">Save a Special Memory</h2>
-            <p className="text-xs text-slate-400 mb-5">Record a memory to cherish forever in your couple album</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-space-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-romantic-500/20 text-rose-400 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-bold text-white font-serif">Add a Special Memory</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -230,7 +309,7 @@ export const MemoriesPage: React.FC = () => {
                   required
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g. Watching the sunrise from Mt. Tamalpais"
+                  placeholder="e.g. Picnic under the stars"
                   className="glass-input w-full px-3.5 py-2 rounded-xl text-xs"
                 />
               </div>
@@ -259,29 +338,39 @@ export const MemoriesPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Photos Uploader & Thumbnail Strip */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Photo URL or Presets</label>
-                <input
-                  type="url"
-                  value={form.imageUrl}
-                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  placeholder="Paste an image URL..."
-                  className="glass-input w-full px-3.5 py-2 rounded-xl text-xs mb-2"
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Photos ({form.imageUrls.length} added)
+                </label>
+
+                {/* Thumbnails of added photos */}
+                {form.imageUrls.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
+                    {form.imageUrls.map((url, i) => (
+                      <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/20 shrink-0 group">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhoto(i)}
+                          className="absolute top-0.5 right-0.5 p-1 rounded-full bg-rose-600 text-white shadow-md transition-transform active:scale-95"
+                          title="Remove photo"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Real photo uploader */}
+                <ImageUploader
+                  onChange={(url) => handleAddPhoto(url)}
+                  category="memory"
+                  aspectRatio="wide"
+                  placeholderText="Upload photo for this memory"
+                  compact={true}
                 />
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {SAMPLE_PHOTO_PRESETS.map((url, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setForm({ ...form, imageUrl: url })}
-                      className={`w-12 h-10 rounded-lg overflow-hidden shrink-0 border-2 transition-transform ${
-                        form.imageUrl === url ? 'border-rose-400 scale-105' : 'border-transparent opacity-60'
-                      }`}
-                    >
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div>

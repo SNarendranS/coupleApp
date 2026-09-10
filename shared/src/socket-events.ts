@@ -32,10 +32,14 @@ export const SOCKET_EVENTS = {
 
   // Games
   GAME_CREATE: 'game:create',
+  GAME_SETUP: 'game:setup',
+  GAME_SUBMIT_BOARD: 'game:submit-board',
+  GAME_AUTOFILL: 'game:autofill',
   GAME_JOIN: 'game:join',
   GAME_MOVE: 'game:move',
   GAME_STATE: 'game:state',
   GAME_RESTART: 'game:restart',
+  GAME_END: 'game:end',
   GAME_FINISHED: 'game:finished',
 
   // Calendar

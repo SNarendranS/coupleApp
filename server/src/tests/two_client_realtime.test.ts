@@ -1,9 +1,12 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import http from 'http';
 import { io as ClientSocket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthService } from '../services/auth.service';
 import { connectDatabase } from '../config/db';
+import { createApp } from '../app';
+import { setupSocketServer } from '../socket';
 import { User, Couple } from '../models';
 import { SOCKET_EVENTS } from '@couple/shared';
 import mongoose from 'mongoose';
@@ -16,35 +19,82 @@ describe('Realtime Two-User Socket.IO Verification', () => {
   let couple: any;
   let socketA: any;
   let socketB: any;
+  let httpServer: http.Server;
+  let port: number = 5000;
 
   before(async () => {
     await connectDatabase();
 
-    const loginA = await AuthService.login({ login: 'alex', password: 'password123' });
-    const loginB = await AuthService.login({ login: 'sam', password: 'password123' });
+    const app = createApp();
+    httpServer = http.createServer(app);
+    setupSocketServer(httpServer);
+    await new Promise<void>((resolve) => {
+      httpServer.listen(0, () => {
+        const addr = httpServer.address();
+        if (addr && typeof addr === 'object') {
+          port = addr.port;
+        }
+        resolve();
+      });
+    });
+
+    const bcrypt = await import('bcryptjs');
+    const hash = await bcrypt.hash('password123', 10);
+
+    let loginA: any, loginB: any;
+
+    let uA = await User.findOne({ $or: [{ username: 'alex' }, { email: 'alex@example.com' }] });
+    if (!uA) {
+      loginA = await AuthService.register({ username: 'alex', email: 'alex@example.com', password: 'password123', displayName: 'Alex' });
+    } else {
+      uA.passwordHash = hash;
+      await uA.save();
+      loginA = await AuthService.login({ login: uA.email, password: 'password123' });
+    }
+
+    let uB = await User.findOne({ $or: [{ username: 'sam' }, { email: 'sam@example.com' }] });
+    if (!uB) {
+      loginB = await AuthService.register({ username: 'sam', email: 'sam@example.com', password: 'password123', displayName: 'Sam' });
+    } else {
+      uB.passwordHash = hash;
+      await uB.save();
+      loginB = await AuthService.login({ login: uB.email, password: 'password123' });
+    }
 
     userA = loginA.user;
     userB = loginB.user;
     tokenA = loginA.token;
     tokenB = loginB.token;
 
-    couple = await Couple.findById(userA.coupleId);
+    let c = await Couple.findOne({ memberIds: { $all: [userA.id, userB.id] } });
+    if (!c) {
+      c = await Couple.create({
+        memberIds: [userA.id, userB.id],
+        name: 'Alex & Sam',
+      });
+      await User.findByIdAndUpdate(userA.id, { coupleId: c._id });
+      await User.findByIdAndUpdate(userB.id, { coupleId: c._id });
+    }
+    couple = c;
     assert.ok(couple, 'Couple must exist');
   });
 
   after(async () => {
     if (socketA) socketA.disconnect();
     if (socketB) socketB.disconnect();
+    if (httpServer) {
+      await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    }
     await mongoose.connection.close();
   });
 
   test('1. Connect two authenticated sockets to Socket.IO server', async () => {
-    socketA = ClientSocket('http://localhost:5000', {
+    socketA = ClientSocket(`http://localhost:${port}`, {
       auth: { token: tokenA },
       transports: ['websocket'],
     });
 
-    socketB = ClientSocket('http://localhost:5000', {
+    socketB = ClientSocket(`http://localhost:${port}`, {
       auth: { token: tokenB },
       transports: ['websocket'],
     });

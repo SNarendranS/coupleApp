@@ -48,6 +48,12 @@ export class CalendarService {
       throw err;
     }
 
+    if (event.imagePublicId) {
+      import('./storage.service').then(({ storageService }) => {
+        storageService.deleteImage(event.imagePublicId!).catch(() => {});
+      });
+    }
+
     return { deleted: true };
   }
 }
